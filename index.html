@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMC-FinTrack | Financial Transparency System - Eastern Mindoro College</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emc: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#16a34a', 600: '#15803d', 700: '#166534', dark: '#064e3b' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 bg-slate-100" onload="initializeApp()">
+
+    <!-- AUTHENTICATION MODAL (LOGIN / SIGNUP) -->
+    <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/75 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-8 border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-900 text-white mb-3 shadow-inner border-2 border-emc-600 overflow-hidden">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900">EMC-FinTrack Portal</h2>
+                <p class="text-xs text-slate-500 mt-1">Eastern Mindoro College, Inc. • Financial Transparency</p>
+            </div>
+
+            <div class="flex rounded-lg bg-slate-100 p-1 mb-6">
+                <button onclick="switchAuthTab('login')" id="tab-login" class="flex-1 py-2 text-xs font-bold rounded-md bg-white text-slate-800 shadow-sm transition-all">Sign In</button>
+                <button onclick="switchAuthTab('signup')" id="tab-signup" class="flex-1 py-2 text-xs font-bold rounded-md text-slate-500 hover:text-slate-800 transition-all">Student Registration</button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Institutional Email</label>
+                    <input type="email" id="login-email" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emc-600 text-sm" placeholder="user@emc.edu.ph">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Password</label>
+                    <input type="password" id="login-password" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emc-600 text-sm" placeholder="••••••••">
+                </div>
+                <p id="login-error" class="text-xs text-rose-600 font-semibold hidden"><i class="fa-solid fa-triangle-exclamation"></i> Invalid email, incorrect password, or account pending approval.</p>
+                <button type="submit" class="w-full py-3 bg-emc-600 hover:bg-emc-700 text-white font-bold rounded-lg shadow-md transition-all text-sm">Sign In</button>
+            </form>
+
+            <!-- SIGN UP FORM -->
+            <form id="form-signup" onsubmit="handleSignup(event)" class="space-y-4 hidden">
+                <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-lg text-xs text-amber-800">
+                    <i class="fa-solid fa-circle-info"></i> <strong>Approval Required:</strong> Student registrations require verification from the Department Adviser before sign-in is allowed.
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Full Name</label>
+                    <input type="text" id="signup-name" required class="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm" placeholder="Juan Dela Cruz">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Program / Department</label>
+                    <select id="signup-program" required class="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm bg-white">
+                        <option value="BSIS">BSIS - Information Systems</option>
+                        <option value="BSCRIM">BSCRIM - Criminology</option>
+                        <option value="BSBA">BSBA - Business Administration</option>
+                        <option value="BSED">BSED - Education</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Student Email</label>
+                    <input type="email" id="signup-email" required class="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm" placeholder="student@emc.edu.ph">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Password</label>
+                    <input type="password" id="signup-password" required class="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full py-3 bg-emc-600 hover:bg-emc-700 text-white font-bold rounded-lg shadow-md transition-all text-sm">Submit Registration for Approval</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="main-app" class="hidden flex-1 flex flex-col">
+        <!-- HEADER -->
+        <header class="bg-slate-900 text-white shadow-md border-b border-slate-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <!-- Logo and Update Option directly below it for Admin -->
+                    <div class="flex flex-col items-center">
+                        <div id="header-logo-container" class="w-11 h-11 rounded-full bg-white flex items-center justify-center font-bold text-slate-900 shadow border border-emc-600 overflow-hidden">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div id="admin-logo-upload-wrapper" class="hidden mt-1">
+                            <label class="text-[9px] text-emc-400 hover:text-white cursor-pointer font-semibold underline whitespace-nowrap">
+                                <i class="fa-solid fa-camera"></i> Update Logo <input type="file" accept="image/*" onchange="handleLogoUpload(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base leading-tight tracking-wide">EMC-FinTrack</h1>
+                        <p class="text-xs text-slate-400">Eastern Mindoro College, Inc. • Est. 1945</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right hidden sm:block">
+                        <span id="user-display-name" class="block text-sm font-semibold text-slate-200">User Name</span>
+                        <span id="user-display-role" class="inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emc-600/30 text-emc-400 rounded border border-emc-600/40">Role</span>
+                    </div>
+                    <button onclick="handleLogout()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700 transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- NAVIGATION TABS -->
+        <nav class="bg-white border-b border-slate-200 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 overflow-x-auto">
+                <button onclick="switchTabContent('dashboard')" id="nav-dashboard" class="tab-btn py-3 px-1 border-b-2 border-emc-600 text-emc-600 font-semibold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                </button>
+                <button onclick="switchTabContent('ledgers')" id="nav-ledgers" class="tab-btn py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-book"></i> Organizations & Ledgers
+                </button>
+                <button onclick="switchTabContent('upload')" id="nav-upload" class="tab-btn role-leader role-adviser py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold text-sm flex items-center gap-2 hidden">
+                    <i class="fa-solid fa-receipt"></i> Upload Expense
+                </button>
+                <button onclick="switchTabContent('audit')" id="nav-audit" class="tab-btn role-adviser py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold text-sm flex items-center gap-2 hidden">
+                    <i class="fa-solid fa-shield-halved"></i> Audit & Verification
+                </button>
+                <button onclick="switchTabContent('research')" id="nav-research" class="tab-btn py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-file-lines"></i> Research & Proposal Info
+                </button>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 overflow-y-auto">
+
+            <!-- 1. DASHBOARD TAB -->
+            <section id="content-dashboard" class="space-y-6">
+                <div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-5 sm:p-6 text-white shadow-md relative overflow-hidden border border-slate-700">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-1 bg-emc-600 text-white font-bold text-[10px] rounded-full uppercase tracking-wider">Official Announcements</span>
+                            <span class="text-xs text-slate-400">Updated Real-Time</span>
+                        </div>
+                        <button id="btn-post-announcement" onclick="openAnnouncementModal()" class="role-leader role-adviser hidden px-3 py-1 bg-emc-600 hover:bg-emc-700 text-white text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-bullhorn"></i> Post Announcement
+                        </button>
+                    </div>
+
+                    <div id="announcements-container" class="space-y-3 mt-4">
+                        <div class="bg-slate-800/80 border border-slate-700 p-4 rounded-lg">
+                            <div class="flex justify-between items-center mb-1">
+                                <h4 class="font-bold text-emc-400 text-sm">📢 Submission of Q3 Financial Receipts</h4>
+                                <span class="text-[11px] text-slate-400">Oct 26, 2026 • By: Admin Adviser</span>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">All student leaders from BSIS, BSCRIM, BSBA, and BSED are required to upload all official receipts before the end of the month.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase">BSIS Funds</p>
+                        <h3 class="text-xl font-bold text-slate-900 mt-1">₱25,000.00</h3>
+                        <span class="text-xs text-emc-600 font-medium">100% Verified</span>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase">BSCRIM Funds</p>
+                        <h3 class="text-xl font-bold text-slate-900 mt-1">₱30,000.00</h3>
+                        <span class="text-xs text-emc-600 font-medium">100% Verified</span>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase">BSBA Funds</p>
+                        <h3 class="text-xl font-bold text-slate-900 mt-1">₱20,000.00</h3>
+                        <span class="text-xs text-emc-600 font-medium">92% Verified</span>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase">BSED Funds</p>
+                        <h3 class="text-xl font-bold text-slate-900 mt-1">₱18,000.00</h3>
+                        <span class="text-xs text-emc-600 font-medium">95% Verified</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
+                        <h3 class="font-bold text-slate-800 mb-4">Departmental Budget Utilization</h3>
+                        <canvas id="budgetChart" height="120"></canvas>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-800 mb-2">Transparency Index</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed mb-4">Public ledger auditing under Agency Theory.</p>
+                            <div class="space-y-3">
+                                <div><div class="flex justify-between text-xs font-semibold mb-1"><span>BSIS - InfoSys Society</span><span class="text-emc-600">100%</span></div><div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-emc-600 h-full w-full"></div></div></div>
+                                <div><div class="flex justify-between text-xs font-semibold mb-1"><span>BSCRIM - Criminology</span><span class="text-emc-600">100%</span></div><div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-emc-600 h-full w-full"></div></div></div>
+                                <div><div class="flex justify-between text-xs font-semibold mb-1"><span>BSBA - Junior Executives</span><span class="text-amber-600">92%</span></div><div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-amber-500 h-full w-[92%]"></div></div></div>
+                                <div><div class="flex justify-between text-xs font-semibold mb-1"><span>BSED - Educators Guild</span><span class="text-emc-600">95%</span></div><div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-emc-600 h-full w-[95%]"></div></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. LEDGERS TAB -->
+            <section id="content-ledgers" class="space-y-6 hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">Public Expense Ledger</h3>
+                            <p class="text-xs text-slate-500">Verified transaction history uploaded by Student Leaders and Faculty Advisers.</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+                                    <th class="p-4">TRX ID / Date</th>
+                                    <th class="p-4">Program</th>
+                                    <th class="p-4">Particulars</th>
+                                    <th class="p-4">Category</th>
+                                    <th class="p-4">Amount</th>
+                                    <th class="p-4">Receipt Proof</th>
+                                    <th class="p-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledger-table-body" class="divide-y divide-slate-100 text-sm text-slate-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. UPLOAD EXPENSE TAB -->
+            <section id="content-upload" class="space-y-6 hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto p-6 sm:p-8">
+                    <h3 class="text-xl font-bold text-slate-900 mb-1">Upload Expense & Official Receipt</h3>
+                    <p class="text-xs text-slate-500 mb-6">Restricted to Student Leaders and Faculty Advisers.</p>
+                    
+                    <form onsubmit="submitExpense(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Program / Department</label>
+                                <select id="upload-program" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm bg-white">
+                                    <option value="BSIS">BSIS - InfoSys Society</option>
+                                    <option value="BSCRIM">BSCRIM - Criminology</option>
+                                    <option value="BSBA">BSBA - Business Executives</option>
+                                    <option value="BSED">BSED - Educators Guild</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Expense Category</label>
+                                <select id="upload-category" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm bg-white">
+                                    <option value="Refreshments">Refreshments & Catering</option>
+                                    <option value="Printing">Printing & Marketing</option>
+                                    <option value="Equipment">Equipment & Rentals</option>
+                                    <option value="Supplies">Supplies & Materials</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Particulars / Item Description</label>
+                            <input type="text" id="upload-particulars" required placeholder="e.g. Semestral Assembly Tarpaulin" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Total Amount (PHP)</label>
+                                <input type="number" id="upload-amount" step="0.01" required placeholder="0.00" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Official Receipt (OR) Number</label>
+                                <input type="text" id="upload-or" required placeholder="OR-XXXXX" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Attach Receipt Proof (Image or PDF)</label>
+                            <input type="file" required class="w-full px-4 py-2 rounded-lg border border-slate-200 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emc-50 file:text-emc-700 hover:file:bg-emc-100">
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-emc-600 hover:bg-emc-700 text-white font-bold rounded-lg shadow transition-all text-sm mt-4">Submit Expense Entry</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- 4. AUDIT TAB (Protected: Adviser Only) -->
+            <section id="content-audit" class="space-y-6 hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-8">
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900">Student Account Registration Approvals</h3>
+                                <p class="text-xs text-slate-500">Review and confirm student registrations before granting portal access.</p>
+                            </div>
+                            <span id="student-pending-badge" class="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 font-bold text-xs rounded-full">0 Pending Students</span>
+                        </div>
+                        <div id="student-audit-list" class="space-y-3"></div>
+                    </div>
+
+                    <hr class="border-slate-200">
+
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900">Faculty Audit & Verification Queue</h3>
+                                <p class="text-xs text-slate-500">Review pending receipt submissions from student leaders.</p>
+                            </div>
+                            <span id="pending-count-badge" class="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 font-bold text-xs rounded-full">0 Pending Expenses</span>
+                        </div>
+                        <div id="audit-list" class="space-y-4"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. RESEARCH & PROPOSAL INFO TAB -->
+            <section id="content-research" class="space-y-6 hidden">
+                <div class="bg-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-md border border-slate-800 relative overflow-hidden space-y-6">
+                    <div class="inline-block px-3 py-1 bg-amber-600 text-white font-bold text-xs rounded-full uppercase tracking-wider">
+                        BS Information System Research Proposal
+                    </div>
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white leading-snug">
+                            EMC-FINTRACK: A Web-Based Financial Transparency System for Student Organizations on EMC Campus
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-2">In Partial Fulfillment of Requirements for Enterprise Architecture & Enterprise System with Feasibility Study</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800 text-xs">
+                        <div>
+                            <span class="text-slate-400 block uppercase font-bold text-[10px]">Researcher:</span>
+                            <span class="font-bold text-white text-sm">MARK ANTHONY A. ACUZAR</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block uppercase font-bold text-[10px]">Institution:</span>
+                            <span class="font-bold text-white text-sm">Eastern Mindoro College, Inc.</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block uppercase font-bold text-[10px]">Date of Presentation:</span>
+                            <span class="font-bold text-emc-400 text-sm">October 25, 2026</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base mb-1">1. Conceptual Framework (IPO Model)</h3>
+                        <p class="text-xs text-slate-500 mb-4">Visual representation of Inputs, Development Processes, and Final System Outputs</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                                <span class="px-2 py-0.5 bg-slate-900 text-white text-[10px] font-bold rounded uppercase">Input</span>
+                                <ul class="text-xs text-slate-600 space-y-1.5">
+                                    <li><strong>Respondent Profiles:</strong> Year level, Course/Dept, Org Membership.</li>
+                                    <li><strong>Functional Requirements:</strong> Transaction & Receipt Uploading, Real-time Dashboard, Role-based Security.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                                <span class="px-2 py-0.5 bg-amber-600 text-white text-[10px] font-bold rounded uppercase">Process</span>
+                                <ul class="text-xs text-slate-600 space-y-1.5">
+                                    <li>System Requirements Analysis</li>
+                                    <li>System Architecture & UI/UX Design</li>
+                                    <li>Full-Stack Development (Frontend & DB)</li>
+                                    <li>Deployment & Usability Testing</li>
+                                </ul>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                                <span class="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded uppercase">Output</span>
+                                <p class="text-xs text-slate-600 leading-relaxed">
+                                    <strong>EMC-FinTrack Web Portal:</strong> Digital receipt ledger, budget dashboard, role access, and audit capabilities.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                        <div class="space-y-4">
+                            <h3 class="font-bold text-slate-900 text-base">2. Theoretical Foundations</h3>
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                                <h4 class="font-bold text-slate-800 text-xs">DeLone & McLean IS Success Model</h4>
+                                <p class="text-xs text-slate-600 leading-relaxed">Evaluates System Quality, Information Quality, and Service Quality to ensure user adoption and trust among student leaders and advisers.</p>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                                <h4 class="font-bold text-slate-800 text-xs">Agency Theory & Accountability Framework</h4>
+                                <p class="text-xs text-slate-600 leading-relaxed">Addresses principal-agent relationships by eliminating information asymmetry between student body officers (agents) and students/advisers (principals).</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <h3 class="font-bold text-slate-900 text-base">3. Scope & Delimitation</h3>
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                                <p class="text-xs text-slate-600"><strong>Scope:</strong> Covers student organization officers, general members, and advisers across EMCI departments. Focuses on digital uploads, ledger tracking, and balance computation.</p>
+                                <p class="text-xs text-slate-600"><strong>Delimitation:</strong> Strictly delimited to financial tracking & auditing. Does not process live payment gateways (GCash, online banking) or institutional tuition funds.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ANNOUNCEMENT MODAL -->
+    <div id="announcement-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-900">Post New Announcement</h3>
+                <button onclick="closeAnnouncementModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="submitAnnouncement(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Announcement Title</label>
+                    <input type="text" id="ann-title" required class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="e.g. Fund Collection Deadline">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Message Content</label>
+                    <textarea id="ann-body" required rows="3" class="w-full px-3 py-2 rounded-lg border text-sm" placeholder="Write announcement details here..."></textarea>
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-emc-600 hover:bg-emc-700 text-white font-bold text-xs rounded-lg shadow">Publish Announcement</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- RECEIPT MODAL -->
+    <div id="receipt-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <i class="fa-solid fa-receipt text-4xl text-emc-600 mb-2"></i>
+            <h3 class="font-bold text-slate-900" id="receipt-modal-title">Official Receipt</h3>
+            <p class="text-xs text-slate-500 mt-1 mb-4">Verified & Authenticated by Faculty Adviser</p>
+            <button onclick="closeReceiptModal()" class="px-4 py-2 bg-slate-800 text-white text-xs font-semibold rounded-lg">Close Preview</button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT CONTROLS -->
+    <script>
+        const DEFAULT_ACCOUNTS = {
+            'admin@emc.edu.ph': { pass: 'Admin123!', name: 'Dr. Faculty Adviser', role: 'adviser', title: 'Faculty Adviser / Admin', status: 'Approved' },
+            'bsis.leader@emc.edu.ph': { pass: 'Bsis2026!', name: 'Mark Anthony Acuzar', role: 'leader', title: 'BSIS Student Leader', status: 'Approved' },
+            'bscrim.leader@emc.edu.ph': { pass: 'Bscrim2026!', name: 'John Rex Criminology', role: 'leader', title: 'BSCRIM Student Leader', status: 'Approved' },
+            'bsba.leader@emc.edu.ph': { pass: 'Bsba2026!', name: 'Sarah Jenkins', role: 'leader', title: 'BSBA Student Leader', status: 'Approved' },
+            'bsed.leader@emc.edu.ph': { pass: 'Bsed2026!', name: 'Maria Santos', role: 'leader', title: 'BSED Student Leader', status: 'Approved' },
+            'bsis.adviser@emc.edu.ph': { pass: 'Adviser2026!', name: 'Prof. BSIS Adviser', role: 'adviser', title: 'BSIS Faculty Adviser', status: 'Approved' }
+        };
+
+        const DEFAULT_EXPENSES = [
+            { id: 'TRX-101', date: '2026-10-18', prog: 'BSIS', part: 'IT Youth Summit Catering (Jollibee Calapan)', cat: 'Refreshments', amount: '12,500.00', orNum: 'OR-99421', status: 'Verified' },
+            { id: 'TRX-102', date: '2026-10-15', prog: 'BSCRIM', part: 'Tactical Training Equipment & Mats', cat: 'Equipment', amount: '8,900.00', orNum: 'OR-77102', status: 'Verified' },
+            { id: 'TRX-103', date: '2026-10-25', prog: 'BSBA', part: 'Marketing Leadership Seminar Handouts', cat: 'Supplies', amount: '3,200.00', orNum: 'OR-55102', status: 'Pending' }
+        ];
+
+        function getAccounts() {
+            const saved = localStorage.getItem('emc_fintrack_users');
+            if (!saved) {
+                localStorage.setItem('emc_fintrack_users', JSON.stringify(DEFAULT_ACCOUNTS));
+                return DEFAULT_ACCOUNTS;
+            }
+            return JSON.parse(saved);
+        }
+
+        function getExpenses() {
+            const saved = localStorage.getItem('emc_fintrack_expenses');
+            if (!saved) {
+                localStorage.setItem('emc_fintrack_expenses', JSON.stringify(DEFAULT_EXPENSES));
+                return DEFAULT_EXPENSES;
+            }
+            return JSON.parse(saved);
+        }
+
+        let currentUser = null;
+
+        function initializeApp() {
+            loadCustomLogo();
+            renderLedgerAndAudit();
+        }
+
+        function handleLogoUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const base64Img = event.target.result;
+                    localStorage.setItem('emc_custom_logo', base64Img);
+                    loadCustomLogo();
+                    alert('System logo successfully updated!');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function loadCustomLogo() {
+            const savedLogo = localStorage.getItem('emc_custom_logo');
+            if (savedLogo) {
+                const headerLogo = document.getElementById('header-logo-container');
+                if (headerLogo) headerLogo.innerHTML = `<img src="${savedLogo}" class="w-full h-full object-cover">`;
+            }
+        }
+
+        function switchAuthTab(tab) {
+            document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
+            document.getElementById('form-signup').classList.toggle('hidden', tab !== 'signup');
+            document.getElementById('tab-login').className = tab === 'login' ? "flex-1 py-2 text-xs font-bold rounded-md bg-white text-slate-800 shadow-sm transition-all" : "flex-1 py-2 text-xs font-bold rounded-md text-slate-500 hover:text-slate-800 transition-all";
+            document.getElementById('tab-signup').className = tab === 'signup' ? "flex-1 py-2 text-xs font-bold rounded-md bg-white text-slate-800 shadow-sm transition-all" : "flex-1 py-2 text-xs font-bold rounded-md text-slate-500 hover:text-slate-800 transition-all";
+            document.getElementById('login-error').classList.add('hidden');
+        }
+
+        function handleSignup(e) {
+            e.preventDefault();
+            const name = document.getElementById('signup-name').value.trim();
+            const prog = document.getElementById('signup-program').value;
+            const email = document.getElementById('signup-email').value.trim().toLowerCase();
+            const pass = document.getElementById('signup-password').value;
+
+            const accounts = getAccounts();
+            if (accounts[email]) {
+                alert('This email address is already registered.');
+                return;
+            }
+
+            accounts[email] = { 
+                pass: pass, 
+                name: name, 
+                role: 'student', 
+                title: `General Student (${prog})`,
+                program: prog,
+                status: 'Pending'
+            };
+            localStorage.setItem('emc_fintrack_users', JSON.stringify(accounts));
+
+            alert(`Registration submitted successfully!\n\nYour account is currently pending confirmation and approval from your Department Adviser (${prog}).`);
+            document.getElementById('form-signup').reset();
+            switchAuthTab('login');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim().toLowerCase();
+            const pass = document.getElementById('login-password').value;
+            const errEl = document.getElementById('login-error');
+
+            const accounts = getAccounts();
+            if (accounts[email] && accounts[email].pass === pass) {
+                if (accounts[email].status === 'Pending') {
+                    errEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Account pending adviser approval. Please wait for confirmation.';
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+                errEl.classList.add('hidden');
+                const user = accounts[email];
+                loginUser(user.name, user.role, user.title);
+            } else {
+                errEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Invalid email or password.';
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        function loginUser(name, role, title) {
+            currentUser = { name, role, title };
+            document.getElementById('auth-modal').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('user-display-name').innerText = name;
+            document.getElementById('user-display-role').innerText = title;
+
+            // Show Update Logo button only if Admin / Adviser
+            const uploadWrapper = document.getElementById('admin-logo-upload-wrapper');
+            if (role === 'adviser') {
+                uploadWrapper.classList.remove('hidden');
+            } else {
+                uploadWrapper.classList.add('hidden');
+            }
+
+            document.querySelectorAll('.role-leader, .role-adviser').forEach(el => el.classList.add('hidden'));
+            if (role === 'leader') {
+                document.querySelectorAll('.role-leader').forEach(el => el.classList.remove('hidden'));
+            } else if (role === 'adviser') {
+                document.querySelectorAll('.role-leader, .role-adviser').forEach(el => el.classList.remove('hidden'));
+            }
+
+            renderLedgerAndAudit();
+            switchTabContent('dashboard');
+            initChart();
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            document.getElementById('form-login').reset();
+            document.getElementById('form-signup').reset();
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('auth-modal').classList.remove('hidden');
+            switchAuthTab('login');
+        }
+
+        function switchTabContent(tabId) {
+            ['dashboard', 'ledgers', 'upload', 'audit', 'research'].forEach(t => {
+                const content = document.getElementById('content-' + t);
+                const nav = document.getElementById('nav-' + t);
+                if (content) content.classList.add('hidden');
+                if (nav) nav.className = nav.className.replace('border-emc-600 text-emc-600', 'border-transparent text-slate-500');
+            });
+            document.getElementById('content-' + tabId).classList.remove('hidden');
+            const activeNav = document.getElementById('nav-' + tabId);
+            activeNav.className = activeNav.className.replace('border-transparent text-slate-500', 'border-emc-600 text-emc-600');
+        }
+
+        function submitExpense(e) {
+            e.preventDefault();
+            const prog = document.getElementById('upload-program').value;
+            const part = document.getElementById('upload-particulars').value;
+            const cat = document.getElementById('upload-category').value;
+            const amt = parseFloat(document.getElementById('upload-amount').value).toFixed(2);
+            const or = document.getElementById('upload-or').value;
+
+            let expenses = getExpenses();
+            const newTrx = {
+                id: 'TRX-' + (100 + expenses.length + 1),
+                date: new Date().toISOString().split('T')[0],
+                prog: prog,
+                part: part,
+                cat: cat,
+                amount: amt,
+                orNum: or,
+                status: 'Pending'
+            };
+
+            expenses.unshift(newTrx);
+            localStorage.setItem('emc_fintrack_expenses', JSON.stringify(expenses));
+
+            alert('Expense uploaded successfully! Pending faculty audit.');
+            document.querySelector('#content-upload form').reset();
+            renderLedgerAndAudit();
+            switchTabContent('ledgers');
+        }
+
+        function renderLedgerAndAudit() {
+            const expenses = getExpenses();
+            const accounts = getAccounts();
+            
+            const ledgerTbody = document.getElementById('ledger-table-body');
+            if (ledgerTbody) {
+                ledgerTbody.innerHTML = expenses.map(item => `
+                    <tr>
+                        <td class="p-4 font-mono text-xs text-slate-500">${item.id}<br>${item.date}</td>
+                        <td class="p-4 font-semibold">${item.prog}</td>
+                        <td class="p-4">${item.part}</td>
+                        <td class="p-4"><span class="px-2 py-1 text-xs bg-slate-100 rounded text-slate-600 font-medium">${item.cat}</span></td>
+                        <td class="p-4 font-bold text-slate-900">₱${Number(item.amount).toLocaleString()}</td>
+                        <td class="p-4"><button onclick="viewReceipt('${item.orNum}')" class="text-emc-600 hover:underline font-semibold text-xs flex items-center gap-1"><i class="fa-solid fa-paperclip"></i> ${item.orNum}</button></td>
+                        <td class="p-4"><span class="px-2 py-1 text-xs font-bold rounded ${item.status === 'Verified' ? 'bg-emc-50 text-emc-700' : 'bg-amber-50 text-amber-700'}">${item.status}</span></td>
+                    </tr>
+                `).join('');
+            }
+
+            const studentAuditList = document.getElementById('student-audit-list');
+            const pendingStudents = Object.entries(accounts).filter(([email, data]) => data.role === 'student' && data.status === 'Pending');
+            const studentBadge = document.getElementById('student-pending-badge');
+            if (studentBadge) studentBadge.innerText = `${pendingStudents.length} Pending Students`;
+
+            if (studentAuditList) {
+                if (pendingStudents.length === 0) {
+                    studentAuditList.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">No pending student account registrations.</p>`;
+                } else {
+                    studentAuditList.innerHTML = pendingStudents.map(([email, data]) => `
+                        <div class="p-3 rounded-lg border border-slate-200 flex justify-between items-center bg-slate-50">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">${data.name}</h4>
+                                <p class="text-xs text-slate-500">${email} • <strong class="text-emc-700">${data.program}</strong></p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="updateStudentStatus('${email}', 'Approved')" class="px-3 py-1 bg-emc-600 hover:bg-emc-700 text-white text-xs font-semibold rounded shadow">Confirm & Approve</button>
+                                <button onclick="updateStudentStatus('${email}', 'Rejected')" class="px-3 py-1 bg-rose-50 text-rose-700 text-xs font-semibold rounded border border-rose-200">Reject</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            const auditList = document.getElementById('audit-list');
+            const pendingExpenses = expenses.filter(item => item.status === 'Pending');
+            const expenseBadge = document.getElementById('pending-count-badge');
+            if (expenseBadge) expenseBadge.innerText = `${pendingExpenses.length} Pending Expenses`;
+
+            if (auditList) {
+                if (pendingExpenses.length === 0) {
+                    auditList.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">No pending receipt submissions to review.</p>`;
+                } else {
+                    auditList.innerHTML = pendingExpenses.map(item => `
+                        <div class="p-4 rounded-lg border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50">
+                            <div>
+                                <span class="text-xs font-mono text-slate-400">${item.id} • ${item.prog} Program</span>
+                                <h4 class="font-bold text-slate-800 text-base mt-0.5">${item.part}</h4>
+                                <p class="text-xs text-slate-600">Amount: <strong class="text-slate-900">₱${Number(item.amount).toLocaleString()}</strong> • ${item.orNum}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="updateAuditStatus('${item.id}', 'Verified')" class="px-3 py-1.5 bg-emc-600 hover:bg-emc-700 text-white text-xs font-semibold rounded-md shadow">Approve & Publish</button>
+                                <button onclick="updateAuditStatus('${item.id}', 'Rejected')" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold rounded-md border border-rose-200">Reject</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        function updateStudentStatus(email, newStatus) {
+            let accounts = getAccounts();
+            if (accounts[email]) {
+                if (newStatus === 'Approved') {
+                    accounts[email].status = 'Approved';
+                    localStorage.setItem('emc_fintrack_users', JSON.stringify(accounts));
+                    alert(`Student account (${email}) has been approved!`);
+                } else {
+                    delete accounts[email];
+                    localStorage.setItem('emc_fintrack_users', JSON.stringify(accounts));
+                    alert(`Student registration rejected.`);
+                }
+                renderLedgerAndAudit();
+            }
+        }
+
+        function updateAuditStatus(id, newStatus) {
+            let expenses = getExpenses();
+            expenses = expenses.map(item => {
+                if (item.id === id) item.status = newStatus;
+                return item;
+            });
+            localStorage.setItem('emc_fintrack_expenses', JSON.stringify(expenses));
+            renderLedgerAndAudit();
+            alert(`Transaction ${id} has been marked as ${newStatus}!`);
+        }
+
+        function openAnnouncementModal() { document.getElementById('announcement-modal').classList.remove('hidden'); }
+        function closeAnnouncementModal() { document.getElementById('announcement-modal').classList.add('hidden'); }
+
+        function submitAnnouncement(e) {
+            e.preventDefault();
+            const title = document.getElementById('ann-title').value;
+            const body = document.getElementById('ann-body').value;
+            const container = document.getElementById('announcements-container');
+
+            const card = `<div class="bg-slate-800/80 border border-slate-700 p-4 rounded-lg">
+                <div class="flex justify-between items-center mb-1">
+                    <h4 class="font-bold text-emc-400 text-sm">📢 ${title}</h4>
+                    <span class="text-[11px] text-slate-400">Just now • By: ${currentUser.name}</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">${body}</p>
+            </div>`;
+            container.innerHTML = card + container.innerHTML;
+            closeAnnouncementModal();
+            alert('Announcement posted to Dashboard!');
+        }
+
+        function viewReceipt(or) {
+            document.getElementById('receipt-modal-title').innerText = `Receipt: ${or}`;
+            document.getElementById('receipt-modal').classList.min ? '' : document.getElementById('receipt-modal').classList.remove('hidden');
+        }
+        function closeReceiptModal() { document.getElementById('receipt-modal').classList.add('hidden'); }
+
+        let chartInit = false;
+        function initChart() {
+            if (chartInit) return;
+            const ctx = document.getElementById('budgetChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['BSIS', 'BSCRIM', 'BSBA', 'BSED'],
+                    datasets: [
+                        { label: 'Total Allocated', data: [25000, 30000, 20000, 18000], backgroundColor: '#cbd5e1' },
+                        { label: 'Disbursed Expenses', data: [12500, 8900, 6400, 4200], backgroundColor: '#16a34a' }
+                    ]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+            chartInit = true;
+        }
+    </script>
+</body>
+</html>
